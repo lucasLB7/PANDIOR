@@ -1,37 +1,82 @@
 # 🛰️ PANDIOR
 
-Modular Geospatial Intelligence & Autonomous Agent Framework.
+### Modular Geospatial Intelligence & Autonomous Agent Framework
 
-## Overview
+PANDIOR is an edge-to-cloud intelligence operating system designed to ingest, normalize, and fuse heterogeneous sensor telemetry, spatial tracks, and open-source intelligence (OSINT) into a unified, actionable graph network.
 
-PANDIOR is a local-first, edge-ready platform for multi-source sensor telemetry ingestion, PostGIS geospatial indexing, and entity graph correlation.
+---
 
-`	ext
-[ Telemetry Feeds ] ──► [ Spatial Ingestion ] ──► [ PostGIS (WGS84) ]
-                               │                         ▲
-                               ▼                         │
-                      [ In-Memory Graph ] ─────────────┘
-`
+## 🏗️ System Architecture
 
-## Features
+```text
+       [ SENSOR TELEMETRY & OSINT FEEDS ]
+  (ADS-B 1090MHz, LoRa/RF Links, GPS, Web Services)
+                         │
+                         ▼
+             ┌───────────────────────┐
+             │  Low-Bandwidth Triage │
+             │  & Payload Normalizer │
+             └───────────┬───────────┘
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+┌──────────────────┐          ┌───────────────────┐
+│ PostGIS Storage  │          │   InMemoryGraph   │
+│ (WGS84 Geodesic) │◄────────►│ Correlation Engine│
+└─────────┬────────┘          └─────────┬─────────┘
+          │                             │
+          ▼                             ▼
+   [ Spatial Radius &             [ Attributed Edge
+     Proximity Scans ]              Persistence ]
+```
 
-- **PostGIS Storage:** Native WGS84 point tracking with GiST spatial indexing.
-- **Entity Tracking:** Master state (entities) and historical fixes (	elemetry_log).
-- **Graph Correlation:** In-memory link discovery with edge persistence (entity_relations).
-- **Minimal Footprint:** Lightweight dependency profile designed for field nodes.
+---
 
-## Quickstart
+## ⚡ Core Capabilities
 
-`powershell
-# 1. Activate environment
+### 1. High-Precision Geospatial Telemetry
+- **Native Geodetic Tracking:** Ingests coordinates directly into WGS84 (`EPSG:4326`) space using PostGIS `GEOGRAPHY(Point)` to calculate true geodesic distances over the Earth's curvature.
+- **Sub-Millisecond Proximity Scans:** GiST spatial indexing (`ST_DWithin`, `ST_Distance`) powers instantaneous radius searches, geofence verification, and proximity triggers.
+- **Dual-State Spatial Model:**
+  - `entities`: Master registry tracking the latest known position, status, and JSONB metadata.
+  - `telemetry_log`: Append-only historical log capturing track altitude, time series, and raw payloads.
+
+### 2. Relational Entity Graph Correlation
+- **Attributed Graph Modeling:** Resolves physical platforms (vehicles, base stations, sensors) and digital identifiers into directed graph edges (`entity_relations`).
+- **Dynamic Link Scoring:** Applies confidence metrics and temporal decay to evaluate evolving operational relationships.
+- **Cross-Domain Fusion:** Fuses RF/telemetry hits with digital identifiers and OSINT context.
+
+### 3. Edge-First & Low-Bandwidth Operations
+- **Local-First Survivability:** Runs fully isolated without external cloud dependencies—optimized for field laptops, cyberdecks, or single-board computers.
+- **Constrained-Network Triage:** Payload deduplication, delta compression, and priority scheduling built to operate across narrow RF pipelines (LoRa, packet radio).
+- **Minimal Footprint:** Lean runtime profile (sub-10 core Python libraries, raw SQL/psycopg2 drivers) ensuring deterministic execution.
+
+### 4. Multi-Source Intelligence & Agent Routing
+- **Multi-Sensor Ingest:** Modular collectors for ADS-B tracking, RF sensor links, and environmental probes.
+- **Semantic Query Router:** Routes queries across geospatial lookups, graph traversals, and scrapers.
+- **API & UI Ready:** Built to expose low-latency REST and WebSocket feeds for dynamic operational interfaces (React/Vue/MapLibre GL).
+
+---
+
+## 🗄️ Relational Schema
+
+- **`entities`**: Master entity registry (ID, type, last fix, GiST spatial index, GIN metadata index).
+- **`telemetry_log`**: Immutable time-series observation log (ID, timestamp, coordinates, altitude, raw payload).
+- **`entity_relations`**: Correlated directional graph edges (source, target, relation type, confidence score, attributes).
+
+---
+
+## 🚀 Quickstart
+
+### 1. Environment & Setup
+```powershell
+# Activate runtime
 .\venv\Scripts\Activate.ps1
 
-# 2. Test ingestion
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Ingestion Verification
+```powershell
 python test_ingest.py
-`
-
-## Database Schema
-
-- entities: Master registry (ID, type, last location, metadata JSONB).
-- 	elemetry_log: Immutable raw observation log with timestamps.
-- entity_relations: Directed correlation graph edges with confidence weighting.
